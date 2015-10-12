@@ -1,16 +1,24 @@
 package uff.dew.partixvp2;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
 import mpi.MPI;
 import mpi.MPIException;
+import uff.dew.svp.ExecutionContext;
+import uff.dew.svp.FinalResultComposer;
 import uff.dew.svp.Partitioner;
+import uff.dew.svp.db.DatabaseException;
 
 /**
  * Hello world!
@@ -42,6 +50,8 @@ public class App
             MPI.Finalize();
             System.exit(1);
         }
+        
+        long init = System.currentTimeMillis();
         
         myrank = MPI.COMM_WORLD.Rank();
         
@@ -184,58 +194,59 @@ public class App
             long parallelProcessingTime = (System.currentTimeMillis() - timestamp);       
             System.out.println("Subquery phase execution time: " + parallelProcessingTime);
             
-//            try {
-//                long t1 = System.nanoTime();
-//                // caminho onde será salvo o documento com a resposta final
-//                String completeFileName = sharedDir + "/finalResult/xqueryAnswer.xml";
-//
-//                File file = new File(completeFileName);     
-//                FileOutputStream out = new FileOutputStream(file);
-//                
-//                FinalResultComposer frc = new FinalResultComposer(out);
-//                frc.setDatabaseInfo("localhost", 1984, "admin", "admin", "expdb", "PURE_BASEX");
-//                
-//                // TODO hack. using a fragment as a way to restore context
-//                String fragmentFile = sharedDir + "/SVP/fragmento_0.txt";
-//                FileInputStream contextStream = new FileInputStream(fragmentFile);
-//                frc.setExecutionContext(ExecutionContext.restoreFromStream(contextStream));
-//                contextStream.close();
-//                
-//                File partialsDir = new File(sharedDir + "/partialResults");
-//                File[] partialFiles = partialsDir.listFiles();
-//                System.out.println("# of partial files: " + partialFiles.length);
-//                List<String> partialFilenames = new ArrayList<String>();
-//                for (File f : partialFiles) {
-//                    partialFilenames.add(f.getAbsolutePath());
-//                }
-//                Collections.sort(partialFilenames);
-//                
-//                for(String partial : partialFilenames) {
-//                    FileInputStream fis = new FileInputStream(partial);
-//                    frc.loadPartial(fis);
-//                    fis.close();
-//                }
-//
-//                long t2 = System.nanoTime();
-//                
-//                System.out.println("Partials loading time: " + ((t2 - t1)/1000000) + " ms");
-//                
-//                frc.combinePartialResults();
-//                
-//                // Calcula o tempo de composição do resultado. Tempo retornado em milisegundos.
-//                delay = ((System.nanoTime() - t2)/1000000);
-//                System.out.println("Composition time: " + delay);
-//                
-//                long totalTime = ((System.nanoTime() - init)/1000000);
-//                System.out.println("Total execution time: " + totalTime);
-//                if ( out!=null ){
-//                    out.close();
-//                }
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            } catch (DatabaseException e) {
-//                e.printStackTrace();
-//            }
+            try {
+                long t1 = System.currentTimeMillis();
+                // caminho onde será salvo o documento com a resposta final
+                String completeFileName = sharedDir + "/finalResult/xqueryAnswer.xml";
+
+                File file = new File(completeFileName);     
+                FileOutputStream out = new FileOutputStream(file);
+                
+                FinalResultComposer frc = new FinalResultComposer(out);
+                frc.setDatabaseInfo("localhost", DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, DB_TYPE);
+                
+                // TODO hack. using a fragment as a way to restore context
+                ByteArrayInputStream contextStream = new ByteArrayInputStream(
+                        fragments.get(0).getBytes()); 
+                frc.setExecutionContext(ExecutionContext.restoreFromStream(contextStream));
+                contextStream.close();
+                
+                File partialsDir = new File(sharedDir + "/partialResults");
+                File[] partialFiles = partialsDir.listFiles();
+                System.out.println("# of partial files: " + partialFiles.length);
+                List<String> partialFilenames = new ArrayList<String>();
+                for (File f : partialFiles) {
+                    partialFilenames.add(f.getAbsolutePath());
+                }
+                Collections.sort(partialFilenames);
+                
+                for(String partial : partialFilenames) {
+                    FileInputStream fis = new FileInputStream(partial);
+                    frc.loadPartial(fis);
+                    fis.close();
+                }
+
+                long t2 = System.currentTimeMillis();
+                
+                System.out.println("Partials loading time: " + (t2 - t1) + " ms");
+                
+                frc.combinePartialResults();
+                
+                // Calcula o tempo de composição do resultado. Tempo retornado em milisegundos.
+                long delta = (System.currentTimeMillis() - t2);
+                System.out.println("Composition time: " + delta + " ms");
+                
+                long totalTime = (System.currentTimeMillis() - init);
+                System.out.println("Total execution time: " + totalTime + " ms");
+                if ( out!=null ){
+                    out.flush();
+                    out.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (DatabaseException e) {
+                e.printStackTrace();
+            }
         }       
         MPI.Finalize();
    }
