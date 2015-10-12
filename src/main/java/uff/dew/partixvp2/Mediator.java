@@ -6,7 +6,7 @@ import java.util.List;
 
 import mpi.MPI;
 
-public class Mediator implements Runnable {
+public class Mediator implements Participant {
 
     private List<String> fragments;
     private List<String> partialFiles;
@@ -18,7 +18,7 @@ public class Mediator implements Runnable {
         workers = new ArrayList<Integer>();
     }
     
-    public void run() {
+    public boolean run() {
         
         boolean working = true;
         boolean errors = false;
@@ -68,7 +68,8 @@ public class Mediator implements Runnable {
                 }
             }
         }
-        
         System.out.println("Mediator finished sending fragments to process");
+        
+        return !errors;
     }
 }

@@ -15,7 +15,7 @@ public class MessageHelper {
     }
 
     public static void sendDoneToMediator(int origin, String payload) {
-        Message msg = new Message(Message.FAIL, origin, payload);
+        Message msg = new Message(Message.DONE, origin, payload);
         send(msg, 0);
     }
 

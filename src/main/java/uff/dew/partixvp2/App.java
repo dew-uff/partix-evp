@@ -22,6 +22,7 @@ public class App
         
         int myrank = -1;
         List<String> fragments = null;
+        Participant participant = null;
         
         // **************************** INIT **********************************
         
@@ -43,6 +44,8 @@ public class App
         }
         
         myrank = MPI.COMM_WORLD.Rank();
+        
+        System.out.println("Hello from participant rank " + myrank);
 
         int THREADS_PER_NODE = -1;   
         int NUMBER_NODES = -1;
@@ -76,8 +79,6 @@ public class App
         final String DB_USER = DB_TYPE.equals("BASEX")?"admin":"SYSTEM";
         final String DB_PASSWORD = DB_TYPE.equals("BASEX")?"admin":"MANAGER";
         
-        Thread[] th = new Thread[THREADS_PER_NODE];
-
         // **************************** PARTITIONING **********************************
         
         if (myrank == 0) {
@@ -144,19 +145,11 @@ public class App
                 System.exit(1);
             }
             
-            th[0] = new Thread(new Mediator(fragments));
-            for (int i = 1; i < THREADS_PER_NODE; i++) {
-                int id = THREADS_PER_NODE*myrank + i;
-                th[i] = new Thread(new Worker(id, sharedDir, "localhost", DB_PORT, 
-                        DB_USER, DB_PASSWORD, DB_NAME, DB_TYPE));
-            }
+            participant = new Mediator(fragments);
         }
         else {
-            for (int i = 0; i < THREADS_PER_NODE; i++) {
-                int id = THREADS_PER_NODE*myrank + i;
-                th[i] = new Thread(new Worker(id, sharedDir, "localhost", DB_PORT, 
-                        DB_USER, DB_PASSWORD, DB_NAME, DB_TYPE));                
-            }
+            participant = new Worker(myrank, sharedDir, "localhost", DB_PORT, DB_USER, DB_PASSWORD, 
+                    DB_NAME, DB_TYPE);
         }
         
         if (myrank == 0) {
@@ -177,23 +170,18 @@ public class App
             timestamp = System.currentTimeMillis();  
         }
 
-        for (int i = 0; i < THREADS_PER_NODE; i++) {
-            th[i].start();          
-        }
-            
-        for (int i = 0; i < THREADS_PER_NODE; i++) {
-            // Aguarda até que todas as threads sejam finalizadas.
-            try {
-                th[i].join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }           
+        boolean ok = participant.run();
                 
         MPI.COMM_WORLD.Barrier(); // Aguarda até que todos os nós tenham finalizado seus jobs. 
-                
-        if (myrank==0) { // Nó 0 é o nó de controle, responsável pela consolidação dos resultados.          
-            long parallelProcessingTime = (System.currentTimeMillis() - timestamp); // Calcula o tempo de execução de todas as sub-consultas. Tempo retornado em milisegundos.      
+        
+        if (!ok) {
+            System.err.println("Error during parallel processing.");
+            MPI.Finalize();
+            System.exit(1);
+        }
+        
+        if (myrank == 0) {           
+            long parallelProcessingTime = (System.currentTimeMillis() - timestamp);       
             System.out.println("Subquery phase execution time: " + parallelProcessingTime);
             
 //            try {

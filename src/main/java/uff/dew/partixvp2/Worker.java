@@ -9,7 +9,7 @@ import uff.dew.svp.SubQueryExecutor;
 import uff.dew.svp.db.DatabaseException;
 import uff.dew.svp.fragmentacaoVirtualSimples.SubQuery;
 
-public class Worker implements Runnable {
+public class Worker implements Participant {
 
     private int id;
     private String sharedDir;
@@ -32,7 +32,9 @@ public class Worker implements Runnable {
         this.sharedDir = sharedDir;
     }
     
-    public void run() {
+    public boolean run() {
+        
+        boolean errors = false;
         
         System.out.println("Worker " + id + " starting");
         
@@ -42,7 +44,7 @@ public class Worker implements Runnable {
         int code = Message.READY;
         
         // it will iterate until mediator sends a DONE message to it        
-        while (code != Message.DONE) {
+        while (code != Message.DONE && code != Message.FAIL) {
             
             // block until receive a message from mediator
             Message msg = MessageHelper.recvFromPeer(0);
@@ -63,12 +65,18 @@ public class Worker implements Runnable {
                     e.printStackTrace();
                     System.out.println("Worker "+ id + " sending FAIL to Mediator... ");
                     MessageHelper.sendFailToMediator(id);
+                    errors = true;
                     break;
                 }
+            }
+            else if (code == Message.FAIL) {
+                errors = true;
             }
         }
         
         System.out.println("Worker " + id + " has finished its work");
+        
+        return !errors;
     }
 
     private String processFragment(String fragment) throws DatabaseException, SubQueryExecutionException, IOException {
