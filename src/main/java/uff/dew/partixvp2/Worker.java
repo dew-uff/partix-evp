@@ -8,7 +8,6 @@ import uff.dew.svp.SubQueryExecutionException;
 import uff.dew.svp.SubQueryExecutor;
 import uff.dew.svp.db.DatabaseException;
 import uff.dew.svp.fragmentacaoVirtualSimples.SubQuery;
-import mpi.MPI;
 
 public class Worker implements Runnable {
 
@@ -30,50 +29,46 @@ public class Worker implements Runnable {
         this.dbpassword = dbpassword;
         this.dbname = dbname;
         this.dbtype = dbtype;
+        this.sharedDir = sharedDir;
     }
     
     public void run() {
-        System.out.println("Worker " + id + " starting...");
         
-        Object[] sendBuffer = new Object[3];
-        sendBuffer[0] = Messages.READY;
-        sendBuffer[1] = new Integer(id);
-        MPI.COMM_WORLD.Send(sendBuffer, 0, 3, MPI.OBJECT, 0, 0);
+        System.out.println("Worker " + id + " starting");
         
-        Integer code = Messages.READY;
+        // it will block waiting mediator to receive this message
+        MessageHelper.sendReadyToMediator(id);
         
-        while (code.intValue() != Messages.DONE.intValue()) {
-            Object[] recvBuffer = new Object[3];
-            MPI.COMM_WORLD.Recv(recvBuffer, 0, 3, MPI.OBJECT, 0, 0);
-            code = (Integer) recvBuffer[0];
-            System.out.println("Worker " + id + " received message with code " + code);
+        int code = Message.READY;
+        
+        // it will iterate until mediator sends a DONE message to it        
+        while (code != Message.DONE) {
             
-            if (code.intValue() == Messages.WORK.intValue()) {
-                String fragment = (String) recvBuffer[1];
-                System.out.println("Worker "+ id + " would process a fragment");
+            // block until receive a message from mediator
+            Message msg = MessageHelper.recvFromPeer(0);
+            System.out.println("Worker " + id + " received message type " + msg.getType());
+            
+            code = msg.getType();
+            
+            if (code == Message.WORK) {
+                String fragment = msg.getPayload();
                 
                 String resultFile;
                 try {
                     resultFile = processFragment(fragment);
+                    System.out.println("Worker "+ id + " sending DONE to Mediator... ");
+                    MessageHelper.sendDoneToMediator(id, resultFile);
                 } catch (Exception e) {
+                    // TODO remove print stack trace
                     e.printStackTrace();
-                    sendBuffer[0] = Messages.FAIL;
-                    sendBuffer[1] = id;
                     System.out.println("Worker "+ id + " sending FAIL to Mediator... ");
-                    MPI.COMM_WORLD.Send(sendBuffer, 0, 3, MPI.OBJECT, 0, 0);
+                    MessageHelper.sendFailToMediator(id);
                     break;
-                } 
-                
-                sendBuffer[0] = Messages.DONE;
-                sendBuffer[1] = id;
-                sendBuffer[2] = resultFile;
-                System.out.println("Worker "+ id + " sending DONE to Mediator... ");
-                MPI.COMM_WORLD.Send(sendBuffer, 0, 3, MPI.OBJECT, 0, 0);
-            }
-            else if (code.intValue() == Messages.DONE.intValue()) {
-                System.out.println("Worker " + id + "received DONE");
+                }
             }
         }
+        
+        System.out.println("Worker " + id + " has finished its work");
     }
 
     private String processFragment(String fragment) throws DatabaseException, SubQueryExecutionException, IOException {

@@ -11,8 +11,6 @@ import java.util.List;
 import mpi.MPI;
 import mpi.MPIException;
 import uff.dew.svp.Partitioner;
-import uff.dew.svp.db.DatabaseException;
-import uff.dew.svp.exceptions.PartitioningException;
 
 /**
  * Hello world!
@@ -74,6 +72,10 @@ public class App
             System.exit(1);
         }
         
+        final int DB_PORT = DB_TYPE.equals("BASEX")?1984:5050;
+        final String DB_USER = DB_TYPE.equals("BASEX")?"admin":"SYSTEM";
+        final String DB_PASSWORD = DB_TYPE.equals("BASEX")?"admin":"MANAGER";
+        
         Thread[] th = new Thread[THREADS_PER_NODE];
 
         // **************************** PARTITIONING **********************************
@@ -124,9 +126,6 @@ public class App
                     fis.close();
                 } 
                 else {
-                    final int DB_PORT = DB_TYPE.equals("BASEX")?1984:5050;
-                    final String DB_USER = DB_TYPE.equals("BASEX")?"admin":"SYSTEM";
-                    final String DB_PASSWORD = DB_TYPE.equals("BASEX")?"admin":"MANAGER";
                     partitioner = new Partitioner("locahost", DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, DB_TYPE);
                 }
                 
@@ -148,13 +147,15 @@ public class App
             th[0] = new Thread(new Mediator(fragments));
             for (int i = 1; i < THREADS_PER_NODE; i++) {
                 int id = THREADS_PER_NODE*myrank + i;
-                th[i] = new Thread(new Worker(id, ));
+                th[i] = new Thread(new Worker(id, sharedDir, "localhost", DB_PORT, 
+                        DB_USER, DB_PASSWORD, DB_NAME, DB_TYPE));
             }
         }
         else {
             for (int i = 0; i < THREADS_PER_NODE; i++) {
                 int id = THREADS_PER_NODE*myrank + i;
-                th[i] = new Thread(new Worker(id));                
+                th[i] = new Thread(new Worker(id, sharedDir, "localhost", DB_PORT, 
+                        DB_USER, DB_PASSWORD, DB_NAME, DB_TYPE));                
             }
         }
         
