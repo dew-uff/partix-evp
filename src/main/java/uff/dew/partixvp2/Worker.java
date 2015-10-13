@@ -48,6 +48,7 @@ public class Worker implements Participant {
             
             // block until receive a message from mediator
             Message msg = MessageHelper.recvFromPeer(0);
+            System.out.println("Worker " + id + " START " + System.currentTimeMillis());
             System.out.println("Worker " + id + " received message type " + msg.getType());
             
             code = msg.getType();
@@ -59,6 +60,7 @@ public class Worker implements Participant {
                 try {
                     resultFile = processFragment(fragment);
                     System.out.println("Worker "+ id + " sending DONE to Mediator... ");
+                    System.out.println("Worker " + id + " END " + System.currentTimeMillis());
                     MessageHelper.sendDoneToMediator(id, resultFile);
                 } catch (Exception e) {
                     // TODO remove print stack trace
