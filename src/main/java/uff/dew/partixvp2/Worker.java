@@ -53,7 +53,6 @@ public class Worker implements Participant {
             code = msg.getType();
             
             if (code == Message.WORK) {
-                System.out.println("Worker " + id + " START " + System.currentTimeMillis());
 
                 String fragment = msg.getPayload();
                 
@@ -61,7 +60,6 @@ public class Worker implements Participant {
                 try {
                     resultFile = processFragment(fragment);
                     System.out.println("Worker "+ id + " sending DONE to Mediator... ");
-                    System.out.println("Worker " + id + " END " + System.currentTimeMillis());
                     MessageHelper.sendDoneToMediator(id, resultFile);
                 } catch (Exception e) {
                     // TODO remove print stack trace

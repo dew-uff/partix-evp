@@ -47,6 +47,8 @@ public class Mediator implements Participant {
                 case Message.DONE:
                     // when message is DONE, the payload contains reference to the partial
                     partialFiles.add(msg.getPayload());
+                    long workerTimestamp = System.currentTimeMillis();
+                    System.out.println("Worker " + msg.getOrigin() + " END " + workerTimestamp);
                     break;
                     
                 case Message.FAIL:
@@ -60,6 +62,9 @@ public class Mediator implements Participant {
             if (!errors && fragIter.hasNext()) {
                 System.out.println("Mediator sending work to " + msg.getOrigin()); 
                 MessageHelper.sendWorkToPeer(msg.getOrigin(), fragIter.next());
+                // register timestamp of execution for this worker
+                long workerTimestamp = System.currentTimeMillis();
+                System.out.println("Worker " + msg.getOrigin() + " START " + workerTimestamp);
             }
             else {
                 System.out.println("Mediator sending DONE message to worker " + msg.getOrigin());
