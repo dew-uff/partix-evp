@@ -48,12 +48,13 @@ public class Worker implements Participant {
             
             // block until receive a message from mediator
             Message msg = MessageHelper.recvFromPeer(0);
-            System.out.println("Worker " + id + " START " + System.currentTimeMillis());
             System.out.println("Worker " + id + " received message type " + msg.getType());
             
             code = msg.getType();
             
             if (code == Message.WORK) {
+                System.out.println("Worker " + id + " START " + System.currentTimeMillis());
+
                 String fragment = msg.getPayload();
                 
                 String resultFile;

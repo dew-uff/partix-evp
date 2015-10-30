@@ -31,8 +31,10 @@ public class Mediator implements Participant {
             
             System.out.println("Mediator waiting to receive message from workers...");
             Message msg = MessageHelper.recvFromPeer(MPI.ANY_SOURCE);
+            long timestamp = System.currentTimeMillis();
             System.out.println("Mediator received message from " + msg.getOrigin() + 
                     " with code " + msg.getType());
+            System.out.println("Mediator 0 START " + timestamp);
             
             switch (msg.getType()) {
             
@@ -67,6 +69,9 @@ public class Mediator implements Participant {
                     working = false;
                 }
             }
+            
+            timestamp = System.currentTimeMillis();
+            System.out.println("Mediator 0 END " + timestamp);
         }
         System.out.println("Mediator finished sending fragments to process");
         
