@@ -1,4 +1,4 @@
-package uff.dew.partixvp2;
+package uff.dew.partixevp;
 
 import junit.framework.Test;
 import junit.framework.TestCase;

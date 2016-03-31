@@ -1,4 +1,4 @@
-package uff.dew.partixvp2;
+package uff.dew.partixevp;
 
 import java.util.ArrayList;
 import java.util.Iterator;

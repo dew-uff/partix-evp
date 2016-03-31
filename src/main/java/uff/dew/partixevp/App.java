@@ -1,4 +1,4 @@
-package uff.dew.partixvp2;
+package uff.dew.partixevp;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;

@@ -1,4 +1,4 @@
-package uff.dew.partixvp2;
+package uff.dew.partixevp;
 
 public interface Participant {
     
